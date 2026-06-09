@@ -1,16 +1,18 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import BartForConditionalGeneration, BartTokenizer
 import torch
 import re 
 from fastapi.templating import Jinja2Templates # UI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-app = FastAPI(title="Text Summarizer App", description="Text Summarization using T5", version="1.0")
 
-model = T5ForConditionalGeneration.from_pretrained("./saved_summary_model")
-tokenizer = T5Tokenizer.from_pretrained("./saved_summary_model")
+app = FastAPI(title="Text Summarizer App", description="Text Summarization using Bart", version="1.0")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+model = BartForConditionalGeneration.from_pretrained("./saved_summary_model")
+tokenizer = BartTokenizer.from_pretrained("./saved_summary_model")
 
 
 if torch.cuda.is_available():
@@ -20,7 +22,7 @@ else:
 
 model.to(device)
 
-templates = Jinja2Templates(directory=".")
+templates = Jinja2Templates(directory="templates")
 
 class DialogueInput(BaseModel):
     dialogue: str
@@ -64,4 +66,8 @@ async def summarize(dialogue_input: DialogueInput):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {"request": request}
+    )
